@@ -68,11 +68,15 @@ public:
     iterator insert(const_iterator pos, T&& val);
     iterator insert(const_iterator pos, size_type cnt, const_reference val);
     template <typename InputIterator>
-    typename std::enable_if_t<
-        !std::is_void_v<std::void_t<std::iterator_traits<InputIterator>>>,
+    auto insert(const_iterator pos, InputIterator first, InputIterator last)
+    -> std::enable_if_t<
+        std::is_base_of_v<
+            std::input_iterator_tag,
+            typename std::iterator_traits<InputIterator>::iterator_category
+        > &&
+        !std::is_integral_v<InputIterator>,
         iterator
-    >
-    insert(const_iterator pos, InputIterator first, InputIterator last);
+    >;
     template <typename... Args>
     iterator emplace(const_iterator pos, Args&&... args);
     iterator erase(const_iterator pos);
@@ -343,9 +347,11 @@ typename MyVector<T>::iterator MyVector<T>::insert(const_iterator pos, const siz
     if(pos < begin() || pos > end()) {
         throw std::out_of_range("MyVector::insert");
     }
+    size_type offeset = pos - begin();
     if(m_size + cnt > m_capacity) {
         m_capacity = m_capacity ? m_capacity * 2 : 1;
         allocate_space(m_capacity);
+        pos = begin() + offeset;
     }
     if(pos < end()) {
         std::copy_backward(const_cast<iterator>(pos), end(), end() + cnt);
@@ -359,18 +365,24 @@ typename MyVector<T>::iterator MyVector<T>::insert(const_iterator pos, const siz
 
 template <typename T>
 template <typename InputIterator>
-typename std::enable_if_t<
-    !std::is_void_v<std::void_t<std::iterator_traits<InputIterator>>>,
+auto MyVector<T>::insert(const_iterator pos, InputIterator first, InputIterator last)
+-> std::enable_if_t<
+    std::is_base_of_v<
+        std::input_iterator_tag,
+        typename std::iterator_traits<InputIterator>::iterator_category
+    > &&
+    !std::is_integral_v<InputIterator>,
     typename MyVector<T>::iterator
->
-MyVector<T>::insert(const_iterator pos, InputIterator first, InputIterator last) {
+> {
     if(pos < begin() || pos > end()) {
         throw std::out_of_range("MyVector::insert");
     }
     size_type cnt = static_cast<size_type>(std::distance(first, last));
+    size_type offeset = pos - begin();
     if(m_size + cnt > m_capacity) {
         m_capacity = m_capacity ? m_capacity * 2 : 1;
         allocate_space(m_capacity);
+        pos = begin() + offeset;
     }
     if(pos < end()) {
         std::copy_backward(const_cast<iterator>(pos), end(), end() + cnt);
@@ -388,9 +400,11 @@ typename MyVector<T>::iterator MyVector<T>::emplace(const_iterator pos, Args&&..
     if(pos < begin() || pos > end()) {
         throw std::out_of_range("MyVector::emplace");
     }
+    size_type offeset = pos - begin();
     if(m_size == m_capacity) {
         m_capacity = m_capacity ? m_capacity * 2 : 1;
         allocate_space(m_capacity);
+        pos = begin() + offeset;
     }
     if(pos < end()) {
         std::copy_backward(const_cast<iterator>(pos), end(), end() + 1);
@@ -443,8 +457,8 @@ void MyVector<T>::resize(size_type n) {
         for(size_type i = n; i < m_size; ++i) {
             m_allocator.destroy(m_data + i);
         }
-        m_size = n;
     }
+    m_size = n;
 }
 
 template <typename T>
@@ -461,8 +475,8 @@ void MyVector<T>::resize(size_type n, const_reference val) {
         for(size_type i = n; i < m_size; ++i) {
             m_allocator.destroy(m_data + i);
         }
-        m_size = n;
     }
+    m_size = n;
 }
 
 template <typename T>
@@ -537,9 +551,15 @@ void MyVector<T>::swap(MyVector& o) noexcept {
 template <typename T>
 void MyVector<T>::allocate_space(size_type new_capacity) {
     pointer new_data = m_allocator.allocate(new_capacity);
-    std::copy(begin(), end(), new_data);
+    for (size_type i = 0; i < m_size; ++i) {
+        m_allocator.construct(new_data + i, std::move_if_noexcept(m_data[i]));
+    }
+    for (size_type i = 0; i < m_size; ++i) {
+        m_allocator.destroy(m_data + i);
+    }
     m_allocator.deallocate(m_data, m_capacity);
     m_data = new_data;
+    m_capacity = new_capacity;
 }
 
 template <typename T>

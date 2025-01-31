@@ -200,7 +200,7 @@ int main() {
 
    // erase 范围测试
     vec12.erase(vec12.begin(), vec12.begin() + 3);
-     assert(vec12.size() == 5);
+    assert(vec12.size() == 5);
     printMyVector(vec12, "Vector12 after range erase");
     std::cout << "range erase test passed." << std::endl;
 
@@ -253,14 +253,14 @@ int main() {
 
     // data 测试
     MyVector<int> vec15 = {100, 200, 300};
-     int* dataPtr = vec15.data();
-     assert(dataPtr[0] == 100);
+    int* dataPtr = vec15.data();
+    assert(dataPtr[0] == 100);
     assert(dataPtr[2] == 300);
     const MyVector<int> cvec15 = vec15;
     const int* cdataPtr = cvec15.data();
-     assert(cdataPtr[0] == 100);
+    assert(cdataPtr[0] == 100);
     assert(cdataPtr[2] == 300);
-     std::cout << "data test passed." << std::endl;
+    std::cout << "data test passed." << std::endl;
 
 
 
@@ -268,7 +268,7 @@ int main() {
     MyVector<int> vec16 = {1, 2, 3};
     MyVector<int> vec17 = {1, 2, 3};
     MyVector<int> vec18 = {3, 2, 1};
-     assert(vec16 == vec17);
+    assert(vec16 == vec17);
     assert(vec16 != vec18);
     std::cout << "== and != test passed." << std::endl;
 
@@ -279,15 +279,15 @@ int main() {
         sum += x;
     }
     assert(sum == 60);
-     std::cout << "iterator test passed." << std::endl;
+    std::cout << "iterator test passed." << std::endl;
 
 
 
-     // const 迭代器测试
+    // const 迭代器测试
     const MyVector<int> vec20 = {100, 200, 300};
     sum = 0;
     for(int x : vec20){
-         sum += x;
+        sum += x;
     }
     assert(sum == 600);
     std::cout << "const iterator test passed." << std::endl;
@@ -296,7 +296,7 @@ int main() {
 
     // reverse 迭代器测试
     MyVector<int> vec21 = {1, 2, 3};
-    int i = 2;
+    int i = 3;
     for (auto it = vec21.rbegin(); it != vec21.rend(); ++it){
         assert(*it == i);
         i--;
@@ -307,13 +307,13 @@ int main() {
     // const reverse 迭代器测试
     const MyVector<int> vec22 = {4, 5, 6};
     i = 6;
-     for (auto it = vec22.crbegin(); it != vec22.crend(); ++it){
+    for (auto it = vec22.crbegin(); it != vec22.crend(); ++it){
         assert(*it == i);
         i--;
     }
     std::cout << "const reverse iterator test passed." << std::endl;
 
-     // swap 测试
+    // swap 测试
     MyVector<int> vec23 = {1, 2, 3};
     MyVector<int> vec24 = {4, 5, 6};
     vec23.swap(vec24);
