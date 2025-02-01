@@ -68,15 +68,12 @@ public:
     iterator insert(const_iterator pos, T&& val);
     iterator insert(const_iterator pos, size_type cnt, const_reference val);
     template <typename InputIterator>
-    auto insert(const_iterator pos, InputIterator first, InputIterator last)
-    -> std::enable_if_t<
-        std::is_base_of_v<
-            std::input_iterator_tag,
-            typename std::iterator_traits<InputIterator>::iterator_category
-        > &&
-        !std::is_integral_v<InputIterator>,
+    typename std::enable_if_t<
+        !std::is_void_v<typename std::iterator_traits<InputIterator>::value_type> &&
+        std::is_same_v<T, typename std::iterator_traits<InputIterator>::value_type>,
         iterator
-    >;
+    >
+    insert(const_iterator pos, InputIterator first, InputIterator last);
     template <typename... Args>
     iterator emplace(const_iterator pos, Args&&... args);
     iterator erase(const_iterator pos);
@@ -365,15 +362,12 @@ typename MyVector<T>::iterator MyVector<T>::insert(const_iterator pos, const siz
 
 template <typename T>
 template <typename InputIterator>
-auto MyVector<T>::insert(const_iterator pos, InputIterator first, InputIterator last)
--> std::enable_if_t<
-    std::is_base_of_v<
-        std::input_iterator_tag,
-        typename std::iterator_traits<InputIterator>::iterator_category
-    > &&
-    !std::is_integral_v<InputIterator>,
+typename std::enable_if_t<
+    !std::is_void_v<typename std::iterator_traits<InputIterator>::value_type> &&
+    std::is_same_v<T, typename std::iterator_traits<InputIterator>::value_type>,
     typename MyVector<T>::iterator
-> {
+>
+MyVector<T>::insert(const_iterator pos, InputIterator first, InputIterator last) {
     if(pos < begin() || pos > end()) {
         throw std::out_of_range("MyVector::insert");
     }
