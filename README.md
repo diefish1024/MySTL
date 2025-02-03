@@ -7,7 +7,7 @@
 | 组件        | 完成度 |
 |------------------------|-------|
 | `MyVector`             | √    |
-| `MyList`               |      |
+| `MyList`               | √    |
 | `MyDeque`              |      |
 | `MyStack`              |      |
 | `MyQueue`              |      |
