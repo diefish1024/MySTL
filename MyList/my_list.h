@@ -32,7 +32,7 @@ public:
         init_sentinel();
         Node* p = m_head;
         for(size_type i = 0; i < count; ++i) {
-            link(create_node(T()), p);
+            link(p, create_node(T()));
             p = p->next;
         }
     }
@@ -40,7 +40,7 @@ public:
         init_sentinel();
         Node* p = m_head;
         for(size_type i = 0; i < count; ++i) {
-            link(create_node(value), p);
+            link(p, create_node(value));
             p = p->next;
         }
     }
@@ -48,7 +48,7 @@ public:
         init_sentinel();
         Node* p = m_head;
         for(const_reference val : init) {
-            link(create_node(val), p);
+            link(p, create_node(val));
             p = p->next;
         }
     }
@@ -56,7 +56,7 @@ public:
         init_sentinel();
         Node* p = m_head;
         for(const_iterator it = o.cbegin(); it != o.cend(); ++it) {
-            link(create_node(*it), p);
+            link(p, create_node(*it));
             p = p->next;
         }
     }
@@ -78,9 +78,10 @@ public:
             clear();
             Node* p = m_head;
             for(const_iterator it = o.cbegin(); it != o.cend(); ++it) {
-                link(create_node(*it), p);
+                link(p, create_node(*it));
                 p = p->next;
             }
+            m_size = o.m_size;
         }
         return *this;
     }
@@ -96,14 +97,16 @@ public:
             o.m_tail = nullptr;
             o.m_size = 0;
         }
+        return *this;
     }
     MyList& operator=(std::initializer_list<T> init) {
         clear();
         Node* p = m_head;
         for(const_reference val : init) {
-            link(create_node(val), p);
+            link(p, create_node(val));
             p = p->next;
         }
+        m_size = init.size();
         return *this;
     }
 
@@ -154,6 +157,7 @@ public:
         unlink(p);
         m_alloc.destroy(p);
         m_alloc.deallocate(p, 1);
+        --m_size;
     }
     void push_back(const_reference val) {
         link(m_tail->prev, create_node(val));
@@ -171,6 +175,7 @@ public:
         unlink(p);
         m_alloc.destroy(p);
         m_alloc.deallocate(p, 1);
+        --m_size;
     }
     iterator insert(const_iterator pos, const_reference val) {
         Node* p = pos.m_node;
@@ -192,13 +197,11 @@ public:
         }
         return iterator(p->prev);
     }
-    template <typename InputIt>
-    typename std::enable_if_t<
-        !std::is_void_v<std::iterator_traits<InputIt>::value_type>, iterator> && 
-        std::is_same_v<T, typename std::iterator_traits<InputIt>::value_type>,
-        iterator
-    > 
-    insert(const_iterator pos, InputIt first, Input last) {
+    template <
+        typename InputIt,
+        typename = std::enable_if_t<std::is_same_v<T, typename std::iterator_traits<InputIt>::value_type>>
+    >
+    iterator insert(const_iterator pos, InputIt first, InputIt last) {
         Node* p = pos.m_node;
         for(; first != last; ++first) {
             link(p->prev, create_node(*first));
@@ -238,6 +241,9 @@ public:
         return iterator(last.m_node);
     }
     void clear() {
+        if(!m_head || !m_tail) {
+            return;
+        }
         for(Node* p = m_head->next; p != m_tail;) {
             Node* q = p;
             p = p->next;
@@ -250,7 +256,8 @@ public:
     }
     void resize(size_type count) {
         if(count < m_size) {
-            iterator it = std::advance(begin(), count);
+            iterator it = begin();
+            std::advance(it, count);
             erase(it, end());
         } else if(count > m_size) {
             insert(end(), count - m_size, T());
@@ -258,7 +265,8 @@ public:
     }
     void resize(size_type count, const_reference val) {
         if(count < m_size) {
-            iterator it = std::advance(begin(), count);
+            iterator it = begin();
+            std::advance(it, count);
             erase(it, end());
         } else if(count > m_size) {
             insert(end(), count - m_size, val);
@@ -272,12 +280,12 @@ public:
     const_iterator end() const noexcept { return const_iterator(m_tail); }
     const_iterator cbegin() const noexcept { return const_iterator(m_head->next); }
     const_iterator cend() const noexcept { return const_iterator(m_tail); }
-    reverse_iterator rbegin() noexcept { return reverse_iterator(m_tail); }
-    const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator(m_tail); }
-    reverse_iterator rend() noexcept { return reverse_iterator(m_head->next); }
-    const_reverse_iterator rend() const noexcept { return const_reverse_iterator(m_head->next); }
-    const_reverse_iterator crbegin() const noexcept { return const_reverse_iterator(m_tail); }
-    const_reverse_iterator crend() const noexcept { return const_reverse_iterator(m_head->next); }
+    reverse_iterator rbegin() noexcept { return reverse_iterator(end()); }
+    const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator(end()); }
+    reverse_iterator rend() noexcept { return reverse_iterator(begin()); }
+    const_reverse_iterator rend() const noexcept { return const_reverse_iterator(begin()); }
+    const_reverse_iterator crbegin() const noexcept { return const_reverse_iterator(end()); }
+    const_reverse_iterator crend() const noexcept { return const_reverse_iterator(begin()); }
 
     // 交换
     void swap(MyList& o) noexcept {
@@ -333,6 +341,92 @@ private:
         node->next->prev = node -> prev;
     }
 };
+template <typename T>
+class MyList<T>::iterator {
+    friend class MyList<T>;
+public:
+    using value_type = T;
+    using difference_type = std::ptrdiff_t;
+    using reference = T&;
+    using pointer = T*;
+    using iterator_category = std::bidirectional_iterator_tag;
 
+    iterator() : m_node(nullptr) {}
+    explicit iterator(Node* node) : m_node(node) {}
+    iterator(const iterator& o) : m_node(o.m_node) {}
 
+    iterator& operator=(const iterator& o) {
+        m_node = o.m_node;
+        return *this;
+    }
+    reference operator*() const { return m_node->data; }
+    pointer operator->() const { return &m_node->data; }
+    iterator& operator++() {
+        m_node = m_node->next;
+        return *this;
+    }
+    iterator operator++(int) {
+        iterator tmp(*this);
+        m_node = m_node->next;
+        return tmp;
+    }
+    iterator& operator--() {
+        m_node = m_node->prev;
+        return *this;
+    }
+    iterator operator--(int) {
+        iterator temp(*this);
+        m_node = m_node->prev;
+        return temp;
+    }
+    bool operator==(const iterator& o) const { return m_node == o.m_node; }
+    bool operator!=(const iterator& o) const { return m_node != o.m_node; }
+private:
+    Node* m_node;
+};
+
+template <typename T>
+class MyList<T>::const_iterator {
+    friend class MyList<T>;
+public:
+    using value_type = T;
+    using difference_type = std::ptrdiff_t;
+    using reference = const T&;
+    using pointer = const T*;
+    using iterator_category = std::bidirectional_iterator_tag;
+
+    const_iterator() : m_node(nullptr) {}
+    explicit const_iterator(Node* node) : m_node(node) {}
+    const_iterator(const const_iterator& o) : m_node(o.m_node) {}
+    const_iterator(const iterator& o) : m_node(o.m_node) {}
+
+    const_iterator& operator=(const const_iterator& o) {
+        m_node = o.m_node;
+        return *this;
+    }
+    reference operator*() const { return m_node->data; }
+    pointer operator->() const { return &m_node->data; }
+    const_iterator& operator++() {
+        m_node = m_node->next;
+        return *this;
+    }
+    const_iterator operator++(int) {
+        const_iterator tmp(*this);
+        m_node = m_node->next;
+        return tmp;
+    }
+    const_iterator& operator--() {
+        m_node = m_node->prev;
+        return *this;
+    }
+    const_iterator operator--(int) {
+        const_iterator temp(*this);
+        m_node = m_node->prev;
+        return temp;
+    }
+    bool operator==(const const_iterator& o) const { return m_node == o.m_node; }
+    bool operator!=(const const_iterator& o) const { return m_node != o.m_node; }
+private:
+    Node* m_node;
+};
 #endif // MY_LIST_H
