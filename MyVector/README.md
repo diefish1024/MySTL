@@ -59,6 +59,11 @@
 | `swap()`                         | √    |
 | `operator==`                     | √    |
 | `operator!=`                     | √    |
+
 ## 测试
 
-直接编译 `test.cpp`
+编译运行 `test.cpp`
+```
+g++ -std=c++17 -o test test.cpp
+./test
+```
